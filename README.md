@@ -73,3 +73,12 @@ Notes
 This repo uses a src/ layout. The package is emergency_qa_lab.
 
 GitHub remote is configured via SSH.
+
+### Start service
+poetry run uvicorn emergency_qa_lab.emergency_service.main:app --reload --port 8000
+
+### Run API tests
+poetry run pytest -m "not e2e"
+
+### Run E2E tests
+poetry run pytest -m e2e

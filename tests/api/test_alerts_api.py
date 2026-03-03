@@ -66,3 +66,8 @@ def test_create_alert_validation_error_missing_device_id(base_url: str) -> None:
 
     detail = resp.json()["detail"]
     assert any(d["loc"][-1] == "device_id" for d in detail)
+
+def test_ui_homepage_accessible(base_url: str) -> None:
+    r = requests.get(f"{base_url}/", timeout=5)
+    assert r.status_code == 200
+    assert "Emergency Alert Console" in r.text

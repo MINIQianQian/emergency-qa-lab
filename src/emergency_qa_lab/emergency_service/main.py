@@ -1,6 +1,8 @@
 import logging
 from fastapi import FastAPI, Header, HTTPException
-
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from .models import AlertCreateRequest, AlertResponse
 from .storage import InMemoryAlertStore
 
@@ -8,6 +10,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("emergency_service")
 
 app = FastAPI(title="Emergency Alert Service")
+BASE_DIR = Path(__file__).resolve().parent
+WEB_DIR = BASE_DIR / "web"
+
+app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse(WEB_DIR / "index.html")
 store = InMemoryAlertStore()
 
 

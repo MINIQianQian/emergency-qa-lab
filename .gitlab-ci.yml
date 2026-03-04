@@ -1,0 +1,74 @@
+stages:
+  - lint
+  - test
+  - e2e
+  - docker
+
+variables:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  BASE_URL: "http://127.0.0.1:8000"
+
+default:
+  image: python:3.11
+
+before_script:
+  - python --version
+  - pip install --no-cache-dir poetry
+  - poetry config virtualenvs.create false
+  - poetry install --no-interaction --no-ansi
+
+lint:
+  stage: lint
+  script:
+    - poetry run ruff check src tests
+
+api_tests:
+  stage: test
+  script:
+    - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
+    # Wait for /health robustly (up to 40s)
+    - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
+    - poetry run pytest -q --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    paths:
+      - report.xml
+    expire_in: 7 days
+
+# bdd_tests:
+#   stage: test
+#   script:
+#     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
+#     - poetry run behave
+
+e2e_tests:
+  stage: e2e
+  image: mcr.microsoft.com/playwright/python
+  script:
+    # Install browser + linux deps (important on CI runners)
+    # - poetry run playwright install --with-deps chromium
+    
+    - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
+    - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
+    - poetry run pytest -m e2e -q
+  artifacts:
+    when: always
+    paths:
+      - playwright-report/
+      - test-results/
+    expire_in: 7 days
+
+# docker_build:
+#   stage: docker
+#   image: docker:24
+#   services:
+#     - docker:dind
+#   variables:
+#     DOCKER_TLS_CERTDIR: ""
+#   script:
+#     - docker version
+#     - docker build -t emergency-qa-lab .

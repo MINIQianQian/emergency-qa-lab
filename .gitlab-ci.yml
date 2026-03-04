@@ -50,7 +50,7 @@ e2e_tests:
   image: mcr.microsoft.com/playwright/python
   script:
     # Install browser + linux deps (important on CI runners)
-    # - poetry run playwright install --with-deps chromium
+    - poetry run playwright install --with-deps chromium
     
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
     - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Emergency Alert Console</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 760px;
+            margin: 24px auto;
+            padding: 0 12px;
+        }
+
+        label {
+            display: block;
+            margin-top: 12px;
+            font-weight: 600;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 6px;
+        }
+
+        button {
+            margin-top: 14px;
+            padding: 10px 14px;
+            cursor: pointer;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: 12px;
+            border-radius: 8px;
+            overflow: auto;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .hint {
+            color: #666;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .error {
+            color: #b00020;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Emergency Alert Console</h1>
+    <p class="hint">This is a minimal internal tool to trigger and view emergency alerts.</p>
+
+    <div class="row">
+        <div>
+            <label for="device_id">Device ID *</label>
+            <input id="device_id" value="TWX550-TEST-001" />
+
+            <label for="reason">Reason *</label>
+            <input id="reason" value="manual_test" />
+
+            <label for="title">Title (optional)</label>
+            <input id="title" value="UI Triggered Alert" />
+
+            <label for="description">Description (optional)</label>
+            <textarea id="description" rows="3">Triggered from web console</textarea>
+
+            <label for="severity">Severity (optional)</label>
+            <input id="severity" value="HIGH" />
+
+            <button id="btnCreate">Create Alert</button>
+            <div id="msg" class="hint"></div>
+            <div id="err" class="error"></div>
+        </div>
+
+        <div>
+            <h3>Result</h3>
+            <pre id="result">{}</pre>
+
+            <h3>Fetch by ID</h3>
+            <input id="alert_id" placeholder="paste alert id here" />
+            <button id="btnGet">Get Alert</button>
+            <pre id="resultGet"></pre>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "http://127.0.0.1:8000"; // keep simple for now
+
+        const el = (id) => document.getElementById(id);
+        const pretty = (obj) => JSON.stringify(obj, null, 2);
+
+        async function createAlert() {
+            el("err").textContent = "";
+            el("msg").textContent = "Creating...";
+
+            const payload = {
+                device_id: el("device_id").value.trim(),
+                reason: el("reason").value.trim(),
+                title: el("title").value.trim(),
+                description: el("description").value.trim(),
+                severity: el("severity").value.trim(),
+            };
+
+            // send only non-empty optional fields
+            if (!payload.title) delete payload.title;
+            if (!payload.description) delete payload.description;
+            if (!payload.severity) delete payload.severity;
+
+            try {
+                const r = await fetch(`/alerts`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                const text = await r.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+                el("result").textContent = pretty(data);
+
+                if (!r.ok) {
+                    el("err").textContent = `HTTP ${r.status}`;
+                    el("msg").textContent = "";
+                    return;
+                }
+
+                el("msg").textContent = "Created.";
+                if (data.id) el("alert_id").value = data.id;
+
+            } catch (e) {
+                el("err").textContent = String(e);
+                el("msg").textContent = "";
+            }
+        }
+
+        async function getAlert() {
+            el("err").textContent = "";
+            const id = el("alert_id").value.trim();
+            if (!id) { el("err").textContent = "alert_id is required"; return; }
+
+            try {
+                const r = await fetch(`/alerts/${encodeURIComponent(id)}`);
+                const text = await r.text();
+                let data;
+                try { data = JSON.parse(text); } catch { data = { raw: text }; }
+                el("resultGet").textContent = pretty(data);
+
+                if (!r.ok) el("err").textContent = `HTTP ${r.status}`;
+            } catch (e) {
+                el("err").textContent = String(e);
+            }
+        }
+
+        el("btnCreate").addEventListener("click", createAlert);
+        el("btnGet").addEventListener("click", getAlert);
+    </script>
+</body>
+
+</html>

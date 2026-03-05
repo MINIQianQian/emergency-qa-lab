@@ -29,7 +29,7 @@ api_tests:
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
     # Wait for /health robustly (up to 40s)
     - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
-    - poetry run pytest -q --junitxml=report.xml
+    - poetry run pytest -q tests/api --junitxml=report.xml
   artifacts:
     when: always
     reports:
@@ -55,16 +55,17 @@ e2e_tests:
     - poetry install --no-interaction --no-ansi
     # 打印 playwright 版本（调试用）
     - poetry run python -c "import playwright; print('playwright version:', playwright.__version__)"
-
     - poetry run playwright install chromium
-
   script:
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
     - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
     - poetry run pytest -m e2e -q --junitxml=e2e-report.xml
   artifacts:
     when: always
+    reports:
+      junit: e2e-report.xml
     paths:
+      - e2e-report.xml
       - playwright-report/
       - test-results/
     expire_in: 7 days

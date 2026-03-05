@@ -12,12 +12,11 @@ variables:
 
 default:
   image: python:3.11
-
-before_script:
-  - python --version
-  - pip install --no-cache-dir poetry
-  - poetry config virtualenvs.create false
-  - poetry install --no-interaction --no-ansi
+  before_script:
+    - python --version
+    - pip install --no-cache-dir poetry
+    - poetry config virtualenvs.create false
+    - poetry install --no-interaction --no-ansi
 
 lint:
   stage: lint
@@ -47,14 +46,22 @@ api_tests:
 
 e2e_tests:
   stage: e2e
-  image: mcr.microsoft.com/playwright/python
+  image: mcr.microsoft.com/playwright/python:v1.58.0-jammy
+  # ✅ override global before_script
+  before_script:
+    - python --version
+    - pip install --no-cache-dir poetry
+    - poetry config virtualenvs.create false
+    - poetry install --no-interaction --no-ansi
+    # 打印 playwright 版本（调试用）
+    - poetry run python -c "import playwright; print('playwright version:', playwright.__version__)"
+
+    - poetry run playwright install chromium
+
   script:
-    # Install browser + linux deps (important on CI runners)
-    - poetry run playwright install --with-deps chromium
-    
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
     - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
-    - poetry run pytest -m e2e -q
+    - poetry run pytest -m e2e -q --junitxml=e2e-report.xml
   artifacts:
     when: always
     paths:

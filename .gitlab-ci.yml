@@ -54,7 +54,8 @@ e2e_tests:
     - poetry config virtualenvs.create false
     - poetry install --no-interaction --no-ansi
     # 打印 playwright 版本（调试用）
-    - poetry run python -c "import playwright; print('playwright version:', playwright.__version__)"
+    - poetry run pip show playwright
+    # - poetry run python -c "import playwright; print('playwright version:', playwright.__version__)"
     - poetry run playwright install chromium
   script:
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &

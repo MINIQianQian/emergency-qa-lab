@@ -60,7 +60,7 @@ e2e_tests:
   script:
     - poetry run uvicorn emergency_qa_lab.emergency_service.main:app --host 127.0.0.1 --port 8000 &
     - poetry run python tests/utils/wait_for_service.py http://127.0.0.1:8000/health
-    - poetry run pytest -m e2e -q --junitxml=e2e-report.xml
+    - poetry run pytest -m e2e -q --junitxml=e2e-report.xml --output=playwright-report
   artifacts:
     when: always
     reports:
